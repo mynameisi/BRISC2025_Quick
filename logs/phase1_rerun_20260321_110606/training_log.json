@@ -1,0 +1,79 @@
+{
+  "config": {
+    "data_dir": "./data",
+    "batch_size": 16,
+    "epochs": 5,
+    "lr": 0.001,
+    "image_size": 512,
+    "num_classes": 4,
+    "device": "mps",
+    "early_stop_patience": 3,
+    "seed": 42,
+    "device_name": "MPS/CPU"
+  },
+  "data_info": {
+    "train_samples": 3933,
+    "val_samples": 860,
+    "train_class_distribution": {
+      "glioma": 1147,
+      "meningioma": 1329,
+      "pituitary": 1457
+    },
+    "val_class_distribution": {
+      "glioma": 254,
+      "meningioma": 306,
+      "pituitary": 300
+    },
+    "num_classes": 4,
+    "class_names": [
+      "glioma",
+      "meningioma",
+      "pituitary",
+      "notumor"
+    ]
+  },
+  "training_history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.5255824646087197,
+      "train_acc": 79.60844139333842,
+      "val_loss": 0.8355065480012585,
+      "val_acc": 68.13953488372093,
+      "learning_rate": 0.001,
+      "timestamp": "2026-03-21T11:13:02.986190",
+      "elapsed_time": 416.9574499130249
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.3891395446730823,
+      "train_acc": 85.25298754131705,
+      "val_loss": 1.3164865667155634,
+      "val_acc": 64.18604651162791,
+      "learning_rate": 0.001,
+      "timestamp": "2026-03-21T11:19:58.106830",
+      "elapsed_time": 832.078118801117
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.3469752656311039,
+      "train_acc": 86.88024408848207,
+      "val_loss": 0.7461325165824275,
+      "val_acc": 74.4186046511628,
+      "learning_rate": 0.001,
+      "timestamp": "2026-03-21T11:26:53.526607",
+      "elapsed_time": 1247.4980897903442
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.336127801215261,
+      "train_acc": 86.54970760233918,
+      "val_loss": 0.4843365512098427,
+      "val_acc": 82.79069767441861,
+      "learning_rate": 0.001,
+      "timestamp": "2026-03-21T11:34:03.918012",
+      "elapsed_time": 1677.8892967700958
+    }
+  ],
+  "final_results": {},
+  "timing": {}
+}
