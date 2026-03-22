@@ -101,19 +101,87 @@ def select_strategy(history: List[Dict]) -> str:
     return 'exploration'
 
 
-def generate_next_config(strategy: str, history: List[Dict]) -> Dict:
+def adjust_search_space_based_on_history(history: List[Dict]) -> Dict:
+    """根据历史实验结果自动调整搜索空间"""
+    
+    # 提取已完成的实验
+    completed = [e for e in history if e.get('status') == 'completed' and 'result' in e]
+    
+    if not completed:
+        return SEARCH_SPACE.copy()
+    
+    # 分析各参数的效果
+    adjusted_space = SEARCH_SPACE.copy()
+    insights = []
+    
+    # 1. 分析 freeze_layers
+    freeze_results = {}
+    for e in completed:
+        fl = e['config'].get('freeze_layers', 0)
+        dice = e['result']['dice']
+        if fl not in freeze_results:
+            freeze_results[fl] = []
+        freeze_results[fl].append(dice)
+    
+    # 如果 freeze=0 和 freeze=2 都表现不佳，优先 freeze=4
+    if 0 in freeze_results and 2 in freeze_results:
+        avg_0 = sum(freeze_results[0]) / len(freeze_results[0])
+        avg_2 = sum(freeze_results[2]) / len(freeze_results[2])
+        if avg_0 < 0.66 and avg_2 < 0.66 and 4 not in freeze_results:
+            # 强制尝试 freeze=4
+            adjusted_space['freeze_layers'] = [4]
+            insights.append(f"freeze=0({avg_0:.3f})和freeze=2({avg_2:.3f})均低于baseline，优先尝试freeze=4")
+    
+    # 2. 分析 learning_rate
+    lr_results = {}
+    for e in completed:
+        lr = e['config'].get('learning_rate', 1e-4)
+        dice = e['result']['dice']
+        if lr not in lr_results:
+            lr_results[lr] = []
+        lr_results[lr].append(dice)
+    
+    # 如果 5e-4 效果不好，降低学习率
+    if 0.0005 in lr_results:
+        avg_5e4 = sum(lr_results[0.0005]) / len(lr_results[0.0005])
+        if avg_5e4 < 0.65:
+            adjusted_space['learning_rate'] = [1e-5, 5e-5, 1e-4]  # 移除 5e-4
+            insights.append(f"lr=5e-4效果不佳(avg={avg_5e4:.3f})，降低学习率范围")
+    
+    # 3. 分析 augmentation
+    aug_results = {}
+    for e in completed:
+        aug = e['config'].get('augmentation', 'medium')
+        dice = e['result']['dice']
+        if aug not in aug_results:
+            aug_results[aug] = []
+        aug_results[aug].append(dice)
+    
+    if 'strong' in aug_results:
+        avg_strong = sum(aug_results['strong']) / len(aug_results['strong'])
+        if avg_strong < 0.60:
+            adjusted_space['augmentation'] = ['weak', 'medium']  # 移除 strong
+            insights.append(f"强增强效果不佳(avg={avg_strong:.3f})，降级到weak/medium")
+    
+    return adjusted_space, insights
+
+
+def generate_next_config(strategy: str, history: List[Dict], adjusted_space: Dict = None) -> Dict:
     """生成下一个实验配置"""
     
+    # 使用调整后的搜索空间或默认空间
+    space = adjusted_space if adjusted_space else SEARCH_SPACE
+    
     if strategy == 'exploration':
-        # 广泛探索：随机采样
+        # 广泛探索：从调整后的空间随机采样
         config = {
-            'learning_rate': random.choice(SEARCH_SPACE['learning_rate']),
-            'freeze_layers': random.choice(SEARCH_SPACE['freeze_layers']),
-            'augmentation': random.choice(SEARCH_SPACE['augmentation']),
-            'attention': random.choice(SEARCH_SPACE['attention']),
-            'image_size': random.choice(SEARCH_SPACE['image_size']),
-            'batch_size': random.choice(SEARCH_SPACE['batch_size']),
-            'decoder_channels': random.choice(SEARCH_SPACE['decoder_channels']),
+            'learning_rate': random.choice(space['learning_rate']),
+            'freeze_layers': random.choice(space['freeze_layers']),
+            'augmentation': random.choice(space['augmentation']),
+            'attention': random.choice(space['attention']),
+            'image_size': random.choice(space['image_size']),
+            'batch_size': random.choice(space['batch_size']),
+            'decoder_channels': random.choice(space['decoder_channels']),
         }
     else:
         # 精细搜索：基于最佳结果微调
@@ -140,14 +208,17 @@ def generate_next_config(strategy: str, history: List[Dict]) -> Dict:
 
 
 def create_experiment_plan() -> Dict:
-    """创建实验计划"""
+    """创建实验计划 - 根据历史自动调整搜索空间"""
     history = load_experiment_history()
+    
+    # 自动调整搜索空间
+    adjusted_space, insights = adjust_search_space_based_on_history(history)
     
     # 选择策略
     strategy = select_strategy(history)
     
-    # 生成配置
-    config = generate_next_config(strategy, history)
+    # 生成配置（使用调整后的空间）
+    config = generate_next_config(strategy, history, adjusted_space)
     
     # 生成实验ID
     exp_id = generate_experiment_id(config)
@@ -168,6 +239,7 @@ def create_experiment_plan() -> Dict:
         'config': config,
         'status': 'planned',
         'hypothesis': generate_hypothesis(config),
+        'adjustment_insights': insights,  # 记录调整洞察
     }
     
     return experiment
@@ -267,11 +339,23 @@ if __name__ == '__main__':
     # 保存
     save_experiment(experiment)
     
+    # 显示调整洞察
+    insights = experiment.get('adjustment_insights', [])
+    
     # 输出
     print(f"""
 🧠 BRISC2025 Auto Research
 ==========================
 
+📊 自动搜索空间调整:
+""")
+    if insights:
+        for insight in insights:
+            print(f"  • {insight}")
+    else:
+        print("  • 使用默认搜索空间")
+    
+    print(f"""
 实验ID: {experiment['id']}
 策略: {experiment['strategy']}
 假设: {experiment['hypothesis']}
