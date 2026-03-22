@@ -43,11 +43,27 @@
 experiments/auto_research/
 ├── history.jsonl          # 所有实验历史
 ├── latest_notification.txt # 最新通知
+├── figures/               # 可视化图表
+│   ├── optimization_trajectory_*.png
+│   ├── config_performance_*.png
+│   └── best_config_card_*.png
 ├── 882528f9/              # 单个实验目录
 │   ├── result.json        # 实验结果
 │   └── best_model.pth     # 最佳模型
 └── ...
 ```
+
+## 📊 可视化分析
+
+每次实验完成后，系统会自动生成优化图表：
+
+| 图表类型 | 说明 |
+|---------|------|
+| `optimization_trajectory_*.png` | 优化轨迹图，显示Dice/IoU随实验次数变化 |
+| `config_performance_*.png` | 配置性能对比，分析各参数影响 |
+| `best_config_card_*.png` | 最佳配置卡片，突出显示最佳实验 |
+
+图表保存在：`experiments/auto_research/figures/`
 
 ## 实验结果解读
 
@@ -88,6 +104,9 @@ python auto_research.py
 # 执行实验
 python auto_research_runner.py
 
+# 生成可视化图表
+python auto_research_viz.py
+
 # 发送通知
 python auto_research_notify.py
 ```
@@ -97,6 +116,9 @@ python auto_research_notify.py
 ```bash
 # 查看所有实验
 python auto_research.py
+
+# 生成最新可视化
+python auto_research_viz.py
 
 # 或查看历史文件
 cat experiments/auto_research/history.jsonl
@@ -109,6 +131,7 @@ cat experiments/auto_research/history.jsonl
 2. 生成新的实验配置
 3. 自动运行训练
 4. 记录结果
-5. 分析趋势并推荐下一步
+5. 生成可视化图表
+6. 分析趋势并推荐下一步
 
 长期运行可自动收敛到最优解。
