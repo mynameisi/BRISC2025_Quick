@@ -1,0 +1,1 @@
+{"id": "882528f9", "timestamp": "2026-03-22T08:52:07.029802", "strategy": "exploration", "config": {"learning_rate": 0.0005, "freeze_layers": 0, "augmentation": "medium", "attention": false, "image_size": 256, "batch_size": 8, "decoder_channels": 128}, "status": "planned", "hypothesis": "\u5168\u91cf\u5fae\u8c03\u53ef\u80fd\u6355\u83b7\u9886\u57df\u7279\u5b9a\u7279\u5f81"}

@@ -1,0 +1,189 @@
+name: BRISC2025 Auto Research
+
+on:
+  # 手动触发
+  workflow_dispatch:
+  # 每4小时自动运行（可根据需要调整）
+  schedule:
+    - cron: '0 */4 * * *'
+  # 代码推送时触发（用于测试）
+  push:
+    paths:
+      - 'auto_research.py'
+      - 'auto_research_runner.py'
+      - '.github/workflows/auto_research.yml'
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  generate-experiment:
+    runs-on: macos-latest
+    outputs:
+      exp-id: ${{ steps.generate.outputs.exp-id }}
+      should-run: ${{ steps.generate.outputs.should-run }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        run: |
+          pip install torch torchvision numpy pillow matplotlib tqdm scikit-learn
+      
+      - name: Load experiment history
+        uses: actions/cache@v4
+        with:
+          path: experiments/auto_research
+          key: experiments-${{ github.run_id }}
+          restore-keys: experiments-
+      
+      - name: Generate experiment plan
+        id: generate
+        run: |
+          python auto_research.py > plan_output.txt
+          cat plan_output.txt
+          
+          # 提取实验ID
+          EXP_ID=$(grep "实验ID:" plan_output.txt | cut -d: -f2 | tr -d ' ')
+          echo "exp-id=$EXP_ID" >> $GITHUB_OUTPUT
+          echo "should-run=true" >> $GITHUB_OUTPUT
+      
+      - name: Upload plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-plan
+          path: plan_output.txt
+
+  run-experiment:
+    needs: generate-experiment
+    if: needs.generate-experiment.outputs.should-run == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 150  # 2.5小时超时
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+      
+      - name: Install dependencies
+        run: |
+          pip install torch torchvision numpy pillow matplotlib tqdm scikit-learn
+      
+      - name: Load experiment history
+        uses: actions/cache@v4
+        with:
+          path: experiments/auto_research
+          key: experiments-${{ github.run_id }}
+          restore-keys: experiments-
+      
+      - name: Run experiment
+        id: run
+        run: |
+          python auto_research_runner.py > run_output.txt 2>&1
+          cat run_output.txt
+          
+          # 提取结果
+          DICE=$(grep -oP 'Dice=\K[0-9.]+' run_output.txt || echo "0.0")
+          echo "dice=$DICE" >> $GITHUB_OUTPUT
+      
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-results-${{ needs.generate-experiment.outputs.exp-id }}
+          path: |
+            experiments/auto_research/
+            run_output.txt
+      
+      - name: Save experiment history
+        uses: actions/cache@v4
+        with:
+          path: experiments/auto_research
+          key: experiments-${{ github.run_id }}-${{ github.run_attempt }}
+
+  notify:
+    needs: [generate-experiment, run-experiment]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Create notification
+        run: |
+          EXP_ID="${{ needs.generate-experiment.outputs.exp-id }}"
+          DICE="${{ needs.run-experiment.outputs.dice }}"
+          STATUS="${{ needs.run-experiment.result }}"
+          
+          echo "# BRISC2025 Auto Research 实验报告" > notification.md
+          echo "" >> notification.md
+          echo "- **实验ID**: $EXP_ID" >> notification.md
+          echo "- **状态**: $STATUS" >> notification.md
+          echo "- **Dice**: $DICE" >> notification.md
+          echo "- **时间**: $(date -u '+%Y-%m-%d %H:%M UTC')" >> notification.md
+          echo "" >> notification.md
+          echo "[查看详情](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> notification.md
+          
+          cat notification.md
+      
+      # 可以在这里添加 Feishu/Slack/邮件通知
+      # - name: Send Feishu notification
+      #   run: |
+      #     curl -X POST "$FEISHU_WEBHOOK" \
+      #       -H "Content-Type: application/json" \
+      #       -d '{"msg_type":"text","content":{"text":"BRISC2025 Auto Research 实验完成\nDice: ${{ needs.run-experiment.outputs.dice }}"}}'
+
+  analyze:
+    needs: run-experiment
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Load experiment history
+        uses: actions/cache@v4
+        with:
+          path: experiments/auto_research
+          key: experiments-${{ github.run_id }}
+          restore-keys: experiments-
+      
+      - name: Analyze and recommend
+        run: |
+          python auto_research.py
+      
+      - name: Commit experiment history
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          if [ -d "experiments/auto_research" ]; then
+            git add experiments/auto_research/
+            git diff --staged --quiet || git commit -m "Auto Research: Update experiment history [skip ci]"
+            git push
+          fi
