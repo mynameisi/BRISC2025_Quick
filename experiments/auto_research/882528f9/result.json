@@ -1,0 +1,16 @@
+{
+  "dice": 0.6531018258796798,
+  "iou": 0.5060847229151814,
+  "epochs": 11,
+  "config": {
+    "learning_rate": 0.0005,
+    "freeze_layers": 0,
+    "augmentation": "medium",
+    "attention": false,
+    "image_size": 256,
+    "batch_size": 8,
+    "decoder_channels": 128,
+    "data_dir": "~/.cache/kagglehub/datasets/briscdataset/brisc2025/versions/6/brisc2025/segmentation_task"
+  },
+  "completed_at": "2026-03-22T09:44:38.771011"
+}
