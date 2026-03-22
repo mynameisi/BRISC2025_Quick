@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Auto Research Experiment 882528f9
-Generated: 2026-03-22T01:34:10.210817
+Auto Research Experiment 773205fd
+Generated: 2026-03-22T08:19:53.556064
 Strategy: exploration
 """
 import torch
@@ -21,19 +21,19 @@ CONFIG = {
     'data_dir': '~/.cache/kagglehub/datasets/briscdataset/brisc2025/versions/6/brisc2025/segmentation_task',
     'batch_size': 8,
     'epochs': 30,
-    'lr': 0.0005,
+    'lr': 1e-05,
     'min_lr': 1e-7,
     'image_size': 256,
     'num_classes': 2,
     'device': 'mps' if torch.backends.mps.is_available() else 'cpu',
     'early_stop_patience': 7,
-    'freeze_layers': 0,
-    'attention': false,
-    'decoder_channels': 128,
-    'augmentation': 'medium',
+    'freeze_layers': 4,
+    'attention': true,
+    'decoder_channels': 64,
+    'augmentation': 'weak',
 }
 
-EXPERIMENT_ID = '882528f9'
+EXPERIMENT_ID = '773205fd'
 LOG_DIR = Path('experiments/auto_research') / EXPERIMENT_ID
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
