@@ -28,9 +28,14 @@ for i in $(seq 1 $RUN_COUNT); do
     echo "2️⃣ 执行实验训练..."
     python auto_research_runner.py
     
+    # 生成可视化
+    echo ""
+    echo "3️⃣ 生成优化图表..."
+    python auto_research_viz.py
+    
     # 发送通知
     echo ""
-    echo "3️⃣ 发送通知..."
+    echo "4️⃣ 发送通知..."
     python auto_research_notify.py
     
     echo ""

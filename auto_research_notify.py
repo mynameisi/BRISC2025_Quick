@@ -119,6 +119,15 @@ def main():
     with open(notify_file, 'w') as f:
         f.write(msg)
     
+    # 列出生成的图表
+    figures_dir = Path('experiments/auto_research/figures')
+    if figures_dir.exists():
+        figures = sorted(figures_dir.glob('*.png'), key=lambda x: x.stat().st_mtime, reverse=True)
+        if figures:
+            print(f"\n📊 生成的可视化图表:")
+            for fig in figures[:5]:  # 显示最新的5个
+                print(f"  📈 {fig.name}")
+    
     print(f"\n✅ 通知已保存到: {notify_file}")
 
 

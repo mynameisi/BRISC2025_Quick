@@ -145,31 +145,31 @@ def run_experiment(experiment: dict) -> dict:
             with open(result_file) as f:
                 exp_result = json.load(f)
         else:
-            exp_result = {{
+            exp_result = {
                 'dice': 0.0,
                 'iou': 0.0,
                 'epochs': 0,
                 'error': '未找到结果文件'
-            }}
+            }
         
         exp_result['duration_minutes'] = (time.time() - start_time) / 60
         
         return exp_result
         
     except subprocess.TimeoutExpired:
-        return {{
+        return {
             'dice': 0.0,
             'iou': 0.0,
             'epochs': 0,
             'error': '超时(>2小时)'
-        }}
+        }
     except Exception as e:
-        return {{
+        return {
             'dice': 0.0,
             'iou': 0.0,
             'epochs': 0,
             'error': str(e)
-        }}
+        }
 
 def main():
     print("🧠 BRISC2025 Auto Research - 实验执行器")

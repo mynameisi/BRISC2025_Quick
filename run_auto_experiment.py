@@ -186,6 +186,9 @@ def main():
     args = parse_args()
     config = json.loads(args.config)
     
+    # 添加默认data_dir
+    config.setdefault('data_dir', '~/.cache/kagglehub/datasets/briscdataset/brisc2025/versions/6/brisc2025/segmentation_task')
+    
     exp_dir = Path('experiments/auto_research') / args.exp_id
     exp_dir.mkdir(parents=True, exist_ok=True)
     
